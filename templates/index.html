@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>California House Price Predictor</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-home"></i>
+                <h1>California House Price Predictor</h1>
+            </div>
+            <p class="subtitle">Select location on map and enter house details to predict price</p>
+        </header>
+
+        <main class="main-content">
+            <div class="prediction-container">
+                <div class="form-section">
+                    <h2><i class="fas fa-edit"></i> House Details</h2>
+
+                    <!-- Map Section -->
+                    <div class="map-section">
+                        <h3><i class="fas fa-map-marked-alt"></i> Select Location on California Map</h3>
+                        <div class="map-container">
+                            <div id="californiaMap"></div>
+                            <div class="map-info">
+                                <p><i class="fas fa-info-circle"></i> Click on the map to set location coordinates</p>
+                                <div class="selected-coords">
+                                    <span>Latitude: <span id="selectedLat">37.7749</span></span>
+                                    <span>Longitude: <span id="selectedLng">-122.4194</span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form id="predictionForm">
+                        <div class="form-grid">
+                            <!-- Location Fields (auto-filled from map) -->
+                            <div class="form-group">
+                                <label for="latitude">
+                                    <i class="fas fa-map-marker-alt"></i> Latitude
+                                </label>
+                                <input type="number" step="0.0001" id="latitude" name="latitude" required
+                                    placeholder="Click map to set" readonly>
+                                <button type="button" class="btn-map-pick" onclick="useCurrentLocation()">
+                                    <i class="fas fa-location-arrow"></i> Use My Location
+                                </button>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="longitude">
+                                    <i class="fas fa-map-marker-alt"></i> Longitude
+                                </label>
+                                <input type="number" step="0.0001" id="longitude" name="longitude" required
+                                    placeholder="Click map to set" readonly>
+                            </div>
+
+                            <!-- Other fields -->
+                            <div class="form-group">
+                                <label for="median_income">
+                                    <i class="fas fa-money-bill-wave"></i> Median Income
+                                </label>
+                                <input type="number" step="0.01" id="median_income" name="median_income" required
+                                    placeholder="e.g., 3.87">
+                                <small>Median household income (in tens of thousands)</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="housing_median_age">
+                                    <i class="fas fa-building"></i> Housing Median Age
+                                </label>
+                                <input type="number" step="1" id="housing_median_age" name="housing_median_age" required
+                                    placeholder="e.g., 41">
+                                <small>Median age of houses in the area</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="total_rooms">
+                                    <i class="fas fa-door-open"></i> Total Rooms
+                                </label>
+                                <input type="number" step="1" id="total_rooms" name="total_rooms" required
+                                    placeholder="e.g., 8802">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="total_bedrooms">
+                                    <i class="fas fa-bed"></i> Total Bedrooms
+                                </label>
+                                <input type="number" step="1" id="total_bedrooms" name="total_bedrooms" required
+                                    placeholder="e.g., 2185">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="population">
+                                    <i class="fas fa-users"></i> Population
+                                </label>
+                                <input type="number" step="1" id="population" name="population" required
+                                    placeholder="e.g., 3228">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="households">
+                                    <i class="fas fa-home"></i> Households
+                                </label>
+                                <input type="number" step="1" id="households" name="households" required
+                                    placeholder="e.g., 1267">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="ocean_proximity">
+                                    <i class="fas fa-water"></i> Ocean Proximity
+                                </label>
+                                <select id="ocean_proximity" name="ocean_proximity" required>
+                                    <option value="">Select an option</option>
+                                    <option value="NEAR BAY">Near Bay</option>
+                                    <option value="<1H OCEAN">
+                                        <1H Ocean</option>
+                                    <option value="INLAND">Inland</option>
+                                    <option value="NEAR OCEAN">Near Ocean</option>
+                                    <option value="ISLAND">Island</option>
+                                </select>
+                                <small>Proximity to the ocean</small>
+                            </div>
+
+                            <!-- Calculated fields -->
+                            <div class="form-group">
+                                <label for="rooms_per_household">
+                                    <i class="fas fa-calculator"></i> Rooms per Household
+                                </label>
+                                <input type="number" step="0.01" id="rooms_per_household" name="rooms_per_household"
+                                    required placeholder="Auto-calculated" readonly>
+                                <small>Rooms ÷ Households (auto-calculated)</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="bedrooms_per_room">
+                                    <i class="fas fa-calculator"></i> Bedrooms per Room
+                                </label>
+                                <input type="number" step="0.001" id="bedrooms_per_room" name="bedrooms_per_room"
+                                    required placeholder="Auto-calculated" readonly>
+                                <small>Bedrooms ÷ Total Rooms (auto-calculated)</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="population_per_household">
+                                    <i class="fas fa-calculator"></i> Population per Household
+                                </label>
+                                <input type="number" step="0.01" id="population_per_household"
+                                    name="population_per_household" required placeholder="Auto-calculated" readonly>
+                                <small>Population ÷ Households (auto-calculated)</small>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-predict">
+                                <i class="fas fa-calculator"></i> Predict Price
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="resetBtn">
+                                <i class="fas fa-redo"></i> Reset Form
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="sampleBtn">
+                                <i class="fas fa-magic"></i> Load Sample Data
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="result-section">
+                    <h2><i class="fas fa-chart-line"></i> Prediction Result</h2>
+
+                    <div class="result-card" id="resultCard">
+                        <div class="result-placeholder">
+                            <i class="fas fa-house-user"></i>
+                            <h3>Prediction will appear here</h3>
+                            <p>Select location on map, fill the form and click "Predict Price"</p>
+                        </div>
+
+                        <div class="result-content" id="resultContent" style="display: none;">
+                            <div class="price-display">
+                                <div class="price-icon">
+                                    <i class="fas fa-home"></i>
+                                </div>
+                                <div class="price-info">
+                                    <h3>Predicted House Price</h3>
+                                    <div class="price-value" id="priceValue">$0.00</div>
+                                    <div class="price-subtitle">California Housing Market</div>
+                                </div>
+                            </div>
+
+                            <div class="location-display">
+                                <h4><i class="fas fa-map-marker-alt"></i> Selected Location</h4>
+                                <div class="map-mini" id="miniMap"></div>
+                                <div class="location-details">
+                                    <span>Latitude: <strong id="resultLat">0</strong></span>
+                                    <span>Longitude: <strong id="resultLng">0</strong></span>
+                                </div>
+                            </div>
+
+                            <div class="prediction-details">
+                                <h4><i class="fas fa-info-circle"></i> Prediction Details</h4>
+                                <div class="details-grid" id="detailsGrid">
+                                    <!-- Details will be populated by JavaScript -->
+                                </div>
+                            </div>
+
+                            <div class="timestamp" id="timestamp"></div>
+                        </div>
+                    </div>
+
+                    <div class="loading" id="loading" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>Analyzing data and making prediction...</p>
+                    </div>
+
+                    <div class="error-message" id="errorMessage" style="display: none;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p id="errorText"></p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>California House Price Prediction System &copy; 2025</p>
+            <p>Powered by LightGBM Machine Learning Model | Data Source: California Housing Dataset</p>
+            <div class="api-status">
+                <span id="apiStatus">Checking API connection...</span>
+                <span class="status-dot" id="statusDot"></span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="/static/js/script.js"></script>
+</body>
+
+</html>
